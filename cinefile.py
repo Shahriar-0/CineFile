@@ -1,7 +1,7 @@
 import os
 import re
 import traceback
-import urllib
+import urllib.request
 import requests
 import tmdbsimple as tmdb
 from PIL import Image
@@ -88,7 +88,7 @@ class MovieScanner:  # pass working folder path
     folder_pattern = "{YEAR} - {MOVIENAME}"  # like (2011 - Melancholia), pattern can be changed
     formats = ["mp4", "mkv", "avi", "flv", "avi", "wmv"]  # can be changed
     exclude_folders = list()
-    rec_search = True  # Search Recursively ?
+    rec_search = False  # Search Recursively ?
 
     def __init__(self, basefolder):
         self.basefolder = basefolder
@@ -263,6 +263,8 @@ class Icon:
             os.system(r'attrib /s /d -h -s -r "%userprofile%\AppData\Local\Microsoft\Windows\Explorer\*"')
             os.system(r'del /f "%userprofile%\AppData\Local\Microsoft\Windows\Explorer\\thumbcache_*.db"')
             os.system(r"start explorer")
+            os.system(r"explorer.exe")
+
 
         except:
             pass
@@ -346,6 +348,7 @@ class TV:
                 except Exception as exc:
                     self.failed = True
 
+
     def init_name(self, tv_file):
         guess = guessit(os.path.basename(tv_file))
         self.name = guess['title'].strip()
@@ -364,7 +367,7 @@ class TVScanner:  # pass working folder path
     done_progress = 0
     formats = ["mp4", "mkv", "avi", "flv", "avi", "wmv"]  # can be changed
     exclude_folders = list()
-    rec_search = True  # Search Recursively ?
+    rec_search = False  # Search Recursively ?
 
     def __init__(self, basefolder):
         self.basefolder = basefolder
