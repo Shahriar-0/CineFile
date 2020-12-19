@@ -263,7 +263,6 @@ class Icon:
             os.system(r'attrib /s /d -h -s -r "%userprofile%\AppData\Local\Microsoft\Windows\Explorer\*"')
             os.system(r'del /f "%userprofile%\AppData\Local\Microsoft\Windows\Explorer\\thumbcache_*.db"')
             os.system(r"start explorer")
-            os.system(r"explorer.exe")
 
 
         except:
@@ -365,7 +364,7 @@ class TVScanner:  # pass working folder path
     status = ""  # Send Status For GUI
     total_progress = 0  # Progress Bar Data for GUI
     done_progress = 0
-    formats = ["mp4", "mkv", "avi", "flv", "avi", "wmv"]  # can be changed
+    formats = ["mp4", "mkv", "avi", "flv", "avi", "wmv", "srt"]  # can be changed
     exclude_folders = list()
     rec_search = False  # Search Recursively ?
 
@@ -427,10 +426,11 @@ class TVScanner:  # pass working folder path
             print(self.status)
 
     def cut_episode(self, tv):
+        paste = ""
         if not os.path.isdir(os.path.join(self.work_folder, tv.name)):
             os.mkdir(os.path.join(self.work_folder, tv.name))
 
-        elif tv.season is not None:
+        if tv.season is not None:
             if not os.path.isdir(os.path.join(self.work_folder, tv.name, "Season " + tv.season)):
                 os.mkdir(os.path.join(self.work_folder, tv.name, "Season " + tv.season))
             if not os.path.isdir(os.path.join(self.work_folder, tv.name, "Season " + tv.season,
@@ -444,8 +444,8 @@ class TVScanner:  # pass working folder path
                 os.mkdir(os.path.join(self.work_folder, tv.name, "Episode " + tv.episode))
             paste = os.path.join(self.work_folder, tv.name,
                                  "Episode " + tv.episode, os.path.basename(tv.abspath))
-
-        os.rename(tv.abspath, paste)
+        if(paste != ""):
+            os.rename(tv.abspath, paste)
 
     @staticmethod
     def set_icons(folder):
@@ -456,6 +456,7 @@ class TVScanner:  # pass working folder path
                 continue
 
             try:
+                print("Setting icon for " +  os.path.join(folder, item))
                 search.tv(query=item)
                 poster_path = search.results[0]['poster_path']
 
