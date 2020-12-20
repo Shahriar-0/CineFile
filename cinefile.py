@@ -6,6 +6,7 @@ import requests
 import tmdbsimple as tmdb
 from PIL import Image
 from guessit import guessit
+import threading
 
 tmdb.API_KEY = "6a4bc831d3389b694627785af6f5320e"
 
@@ -84,6 +85,7 @@ class MovieScanner:  # pass working folder path
     total_progress = 0  # Progress Bar Data for GUI
     done_progress = 0
     movie_list = list()
+    threads = list()
     director_icons = dict()  # Director name to director picture
     folder_pattern = "{YEAR} - {MOVIENAME}"  # like (2011 - Melancholia), pattern can be changed
     formats = ["mp4", "mkv", "avi", "flv", "avi", "wmv"]  # can be changed
@@ -113,6 +115,19 @@ class MovieScanner:  # pass working folder path
         for folder_name in fold_list:
             self.exclude_folders.append(folder_name.strip())
 
+    def myfunc(self, folder, i):
+        if re.split(r"\.", i)[-1] in self.formats:
+            movie = Movie(folder + i)
+            if not movie.failed:
+                self.status = "Recognized " + str(movie)
+                print(self.status)
+                self.director_icons[movie.director] = movie.director_icon
+                movie.folder_path = os.path.join(self.work_folder, movie.director.decode('utf-8'),
+                                                    self.generate_fname(movie))
+                self.movie_list.append(movie)
+            else:
+                del movie
+
     def scan_folder(self, folder=None):  # check self.movie_list afterwards!
         self.total_progress = MovieScanner.count_progress(self.basefolder)
         folder = self.basefolder if folder is None else folder
@@ -125,22 +140,26 @@ class MovieScanner:  # pass working folder path
                     if self.rec_search:
                         self.scan_folder(folder + i)
                 else:
-                    if re.split(r"\.", i)[-1] in self.formats:
-                        movie = Movie(folder + i)
-                        if not movie.failed:
-                            self.status = "Recognized " + str(movie)
-                            print(self.status)
-                            self.director_icons[movie.director] = movie.director_icon
-                            movie.folder_path = os.path.join(self.work_folder, movie.director.decode('utf-8'),
-                                                             self.generate_fname(movie))
-                            self.movie_list.append(movie)
-                        else:
-                            del movie
+                    t = threading.Thread(target=self.myfunc, args=(folder, i,))
+                    self.threads.append(t)
+                    t.start()
+                    # if re.split(r"\.", i)[-1] in self.formats:
+                    #     movie = Movie(folder + i)
+                    #     if not movie.failed:
+                    #         self.status = "Recognized " + str(movie)
+                    #         print(self.status)
+                    #         self.director_icons[movie.director] = movie.director_icon
+                    #         movie.folder_path = os.path.join(self.work_folder, movie.director.decode('utf-8'),
+                    #                                          self.generate_fname(movie))
+                    #         self.movie_list.append(movie)
+                    #     else:
+                    #         del movie
                 self.done_progress += 1
             except Exception as exc:
                 print(traceback.format_exc())
                 print(exc)
 
+    
     def generate_fname(self, movie):  # generates folder name
         out = self.folder_pattern.replace("{YEAR}", str(movie.year)).replace("{MOVIENAME}", movie.name)
         return out
@@ -180,8 +199,19 @@ class MovieScanner:  # pass working folder path
                 self.status = "Problem Writing the File"
                 print(self.status)
 
+    def icon_thread(self, movie):
+        url = urllib.request.urlopen("https://image.tmdb.org/t/p/w200/" + movie.poster_path)
+        im = Image.open(url).convert('RGBA')
+        im_new = Icon.expand2square(im)
+        im_new.save(os.path.join(movie.folder_path, "icon.ico"))
+        os.system("attrib +H \"" + os.path.join(movie.folder_path, "icon.ico\""))
+        Icon.set_icon(movie.folder_path, self)
+        self.done_progress += 1
+
+
     def set_icons(self):  # should make_folders first
         self.total_progress = len(self.movie_list)
+        self.threads = list()
 
         for movie in self.movie_list:
             if movie.poster_path is None or movie.folder_path is None or \
@@ -190,13 +220,16 @@ class MovieScanner:  # pass working folder path
                 continue
 
             try:
-                url = urllib.request.urlopen("https://image.tmdb.org/t/p/w200/" + movie.poster_path)
-                im = Image.open(url).convert('RGBA')
-                im_new = Icon.expand2square(im)
-                im_new.save(os.path.join(movie.folder_path, "icon.ico"))
-                os.system("attrib +H \"" + os.path.join(movie.folder_path, "icon.ico\""))
-                Icon.set_icon(movie.folder_path, self)
-                self.done_progress += 1
+                t = threading.Thread(target=self.icon_thread, args=(movie,))
+                self.threads.append(t)
+                t.start()
+                # url = urllib.request.urlopen("https://image.tmdb.org/t/p/w200/" + movie.poster_path)
+                # im = Image.open(url).convert('RGBA')
+                # im_new = Icon.expand2square(im)
+                # im_new.save(os.path.join(movie.folder_path, "icon.ico"))
+                # os.system("attrib +H \"" + os.path.join(movie.folder_path, "icon.ico\""))
+                # Icon.set_icon(movie.folder_path, self)
+                # self.done_progress += 1
 
             except Exception as exc:
                 print(traceback.format_exc())
@@ -273,19 +306,22 @@ class DirectorIcon:  # pass Directors folder, like CineFile folder
     status = ""
     total_progress = 0
     done_progress = 0
+    threads = list()
     director_icons = dict()  # { links folder path to jpg URL }
 
     def __init__(self, basefolder):
         self.basefolder = basefolder
 
-    def scan_folder(self, movie_scanner=None):  # check self.movie_list afterwards!
+    def scan_folder(self, movie_scanner=None): 
         listd = os.listdir(self.basefolder)
         self.total_progress = len(listd)
 
         for item in listd:
             self.status = "checking folder " + os.path.join(self.basefolder, item)
             try:
-                self.validate_director(item, movie_scanner)
+                t = threading.Thread(target=self.validate_director, args=(item, movie_scanner,))
+                self.threads.append(t)
+                t.start()
                 self.done_progress += 1
             except Exception as exc:
                 print(traceback.format_exc())
@@ -309,19 +345,24 @@ class DirectorIcon:  # pass Directors folder, like CineFile folder
             self.status = "Recognized " + name
             print(self.status)
 
+    def icon_thread(self, folderpath):
+        url = urllib.request.urlopen("https://image.tmdb.org/t/p/w200/" + self.director_icons[folderpath])
+        im = Image.open(url).convert('RGBA')
+        im_new = Icon.expand2square(im)
+        im_new.save(os.path.join(folderpath, "icon.ico"))
+        os.system("attrib +H \"" + os.path.join(folderpath, "icon.ico\""))
+        Icon.set_icon(folderpath, self)
+    
     def set_icons(self):  # should scan first, director_icons should not be empty
+        self.threads.clear()
         for folderpath in self.director_icons:
             self.status = "setting icon for " + folderpath
-            print(self.status)
             if self.director_icons[folderpath] is None or os.path.isfile(os.path.join(folderpath, "icon.ico")):
                 continue
             try:
-                url = urllib.request.urlopen("https://image.tmdb.org/t/p/w200/" + self.director_icons[folderpath])
-                im = Image.open(url).convert('RGBA')
-                im_new = Icon.expand2square(im)
-                im_new.save(os.path.join(folderpath, "icon.ico"))
-                os.system("attrib +H \"" + os.path.join(folderpath, "icon.ico\""))
-                Icon.set_icon(folderpath, self)
+                t = threading.Thread(target=self.icon_thread, args=(str(folderpath),))
+                self.threads.append(t)
+                t.start()
 
             except Exception as exc:
                 print(traceback.format_exc())
@@ -366,6 +407,7 @@ class TVScanner:  # pass working folder path
     done_progress = 0
     formats = ["mp4", "mkv", "avi", "flv", "avi", "wmv", "srt"]  # can be changed
     exclude_folders = list()
+    threads = list()
     rec_search = False  # Search Recursively ?
 
     def __init__(self, basefolder):
@@ -377,7 +419,7 @@ class TVScanner:  # pass working folder path
         for folder_name in fold_list:
             self.exclude_folders.append(folder_name.strip())
 
-    def scan_folder(self, folder=None):  # check self.movie_list afterwards!
+    def scan_folder(self, folder=None):  
         self.total_progress = MovieScanner.count_progress(self.basefolder)
         folder = self.basefolder if folder is None else folder
         folder = folder + os.path.sep
@@ -447,25 +489,29 @@ class TVScanner:  # pass working folder path
         if(paste != ""):
             os.rename(tv.abspath, paste)
 
-    @staticmethod
-    def set_icons(folder):
-        listd = os.listdir(folder)
+    def icon_thread(self, folder, item):
         search = tmdb.Search()
+        print("Setting icon for " +  os.path.join(folder, item))
+        search.tv(query=item)
+        poster_path = search.results[0]['poster_path']
+
+        url = urllib.request.urlopen("https://image.tmdb.org/t/p/w200/" + poster_path)
+        im = Image.open(url).convert('RGBA')
+        im_new = Icon.expand2square(im)
+        im_new.save(os.path.join(folder, item, "icon.ico"))
+        os.system("attrib +H \"" + os.path.join(folder, item, "icon.ico\""))
+        Icon.set_icon(os.path.join(folder, item), None)
+    
+    def set_icons(self, folder):
+        listd = os.listdir(folder)
         for item in listd:
             if os.path.isfile(os.path.join(folder, item, "icon.ico")):
                 continue
 
             try:
-                print("Setting icon for " +  os.path.join(folder, item))
-                search.tv(query=item)
-                poster_path = search.results[0]['poster_path']
-
-                url = urllib.request.urlopen("https://image.tmdb.org/t/p/w200/" + poster_path)
-                im = Image.open(url).convert('RGBA')
-                im_new = Icon.expand2square(im)
-                im_new.save(os.path.join(folder, item, "icon.ico"))
-                os.system("attrib +H \"" + os.path.join(folder, item, "icon.ico\""))
-                Icon.set_icon(os.path.join(folder, item), None)
+                t = threading.Thread(target=self.icon_thread, args=(folder, item))
+                self.threads.append(t)
+                t.start()
 
             except Exception as exc:
                 print(traceback.format_exc())

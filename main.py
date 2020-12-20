@@ -25,44 +25,71 @@ def thread(event, window):
         if event == "MV-START":
             if r"{MOVIENAME}" not in values['pattern']:
                 window['-ERR-'].update(r"Pattern should contain {MOVIENAME}")
+
             elif not os.path.isdir(values['MV-PATH']):
                 window['-ERR-'].update(r" Folder Does Not Exist")
+            
             else:
                 mvscanner = MovieScanner(values['MV-PATH'])
                 mvscanner.folder_pattern = values['pattern']
                 mvscanner.rec_search = values['MV-RECURSIVE']
                 mvscanner.scan_folder()
+                
+                for thread in mvscanner.threads:
+                    thread.join()
                 mvscanner.make_folders()
+                
                 if(values['MV-MOVICON']):
                     mvscanner.set_icons()
+                    for thread in mvscanner.threads:
+                        thread.join()
+
                 if(values['MV-DIRICON']):
                     diricon = DirectorIcon(values['MV-PATH']  + os.path.sep + "CineFile")
+
                     diricon.scan_folder(mvscanner)
+                    for thread in diricon.threads:
+                        thread.join()
+
                     diricon.set_icons()
+                    for thread in diricon.threads:
+                        thread.join()
+        
         elif event == "DIR-START":
             if not os.path.isdir(values['DIR-PATH']):
                 window['-ERR-'].update(r" Folder Does Not Exist")
             else:
                     diricon = DirectorIcon(values['DIR-PATH'])
+                    
                     diricon.scan_folder()
+                    for thread in diricon.threads:
+                        thread.join()
+
                     diricon.set_icons()
+                    for thread in diricon.threads:
+                        thread.join()
         
         elif event == "SER-START":
             if not os.path.isdir(values['SER-PATH']):
                 window['-ERR-'].update(r" Folder Does Not Exist")
             else:
                 tv = TVScanner(values['SER-PATH'])
-                tv.rec_search = values['SER-RECURSIVE']
                 tv.scan_folder()
+                
                 if(values['SER-ICON']):
                     if(os.path.isdir(values['SER-PATH'] + os.path.sep + "CineFile - Series")):
-                        tv.set_icons(values['SER-PATH'] + os.path.sep + "CineFile - Series")
+                        tv.set_icons(values['SER-PATH'] + os.path.sep + "CineFile - Series") 
+                        for thread in tv.threads:
+                            thread.join()
+        
         print("Done")
         window.reappear()
         working_thread = False
-    except:
-        window.reappear()
-        working_thread = False
+    except Exception as exc:
+                print(traceback.format_exc())
+                print(exc)
+                window.reappear()
+                working_thread = False
 
 def clear_cache():
 
