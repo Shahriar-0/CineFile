@@ -412,6 +412,7 @@ class TVScanner:  # pass working folder path
 
     def __init__(self, basefolder):
         self.basefolder = basefolder
+        self.exclude_folders.append("CineFile - Series")
         self.work_folder = os.path.join(self.basefolder, "CineFile - Series")
 
     def exclude(self, folder_list):  # a string -> folder1,folder2,folder3,folder4

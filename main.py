@@ -60,7 +60,6 @@ def thread(event, window):
                 window['-ERR-'].update(r" Folder Does Not Exist")
             else:
                     diricon = DirectorIcon(values['DIR-PATH'])
-                    
                     diricon.scan_folder()
                     for thread in diricon.threads:
                         thread.join()
@@ -74,6 +73,7 @@ def thread(event, window):
                 window['-ERR-'].update(r" Folder Does Not Exist")
             else:
                 tv = TVScanner(values['SER-PATH'])
+                tv.rec_search = values['SER-RECURSIVE']
                 tv.scan_folder()
                 
                 if(values['SER-ICON']):
