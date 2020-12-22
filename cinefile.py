@@ -143,17 +143,7 @@ class MovieScanner:  # pass working folder path
                     t = threading.Thread(target=self.myfunc, args=(folder, i,))
                     self.threads.append(t)
                     t.start()
-                    # if re.split(r"\.", i)[-1] in self.formats:
-                    #     movie = Movie(folder + i)
-                    #     if not movie.failed:
-                    #         self.status = "Recognized " + str(movie)
-                    #         print(self.status)
-                    #         self.director_icons[movie.director] = movie.director_icon
-                    #         movie.folder_path = os.path.join(self.work_folder, movie.director.decode('utf-8'),
-                    #                                          self.generate_fname(movie))
-                    #         self.movie_list.append(movie)
-                    #     else:
-                    #         del movie
+
                 self.done_progress += 1
             except Exception as exc:
                 print(traceback.format_exc())
@@ -223,13 +213,6 @@ class MovieScanner:  # pass working folder path
                 t = threading.Thread(target=self.icon_thread, args=(movie,))
                 self.threads.append(t)
                 t.start()
-                # url = urllib.request.urlopen("https://image.tmdb.org/t/p/w200/" + movie.poster_path)
-                # im = Image.open(url).convert('RGBA')
-                # im_new = Icon.expand2square(im)
-                # im_new.save(os.path.join(movie.folder_path, "icon.ico"))
-                # os.system("attrib +H \"" + os.path.join(movie.folder_path, "icon.ico\""))
-                # Icon.set_icon(movie.folder_path, self)
-                # self.done_progress += 1
 
             except Exception as exc:
                 print(traceback.format_exc())
